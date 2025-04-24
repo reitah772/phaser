@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mitt Phaser 3 Spel</title>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.js"></script>
+  <style>
+    body { margin: 0; }
+    canvas { display: block; margin: 0 auto; }
+  </style>
+</head>
+<body>
+
+<script>
+const config = {
+  type: Phaser.AUTO,
+  width: 800,
+  height: 600,
+  backgroundColor: '#87CEEB',
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { y: 500 },
+      debug: false
+    }
+  },
+  scene: {
+    preload: preload,
+    create: create,
+    update: update
+  }
+};
+
+let player;
+let platforms;
+let cursors;
+let wKey;
+let stars;
+let score = 0;
+let scoreText;
+let gameOver = false;
+let gameOverText;
+
+const game = new Phaser.Game(config);
+
+function preload () {
+  this.load.image('sky', 'https://labs.phaser.io/assets/skies/sky4.png');
+  this.load.image('ground', 'https://labs.phaser.io/assets/sprites/platform.png');
+  this.load.image('star', 'https://labs.phaser.io/assets/sprites/star.png');
+  this.load.image('player', 'https://labs.phaser.io/assets/sprites/dude.png');
+  this.load.image('gameover', 'https://labs.phaser.io/assets/sprites/gameover.png');
+}
+
+function create () {
+  platforms = this.physics.add.staticGroup();
+  platforms.create(400, 580, 'ground').setScale(2).refreshBody();
+  platforms.create(600, 450, 'ground');
+  platforms.create(50, 300, 'ground');
+  platforms.create(750, 220, 'ground');
+
+  platforms.children.iterate(child => {
+    const graphics = this.add.graphics();
+    graphics.fillStyle(0x964B00, 1); 
+    graphics.fillRect(child.x - 50, child.y - 10, 100, 20);
+  });
+
+  player = this.physics.add.sprite(100, 450, null);
+  player.displayWidth = 40;
+  player.displayHeight = 40;
+  player.setBounce(0.2);
+  player.setCollideWorldBounds(true);
+  player.body.setSize(40, 40);
+  player.setTint(0x0000ff); 
+
+  this.physics.add.collider(player, platforms);
+
+  stars = this.physics.add.group({
+    key: 'star',
+    repeat: 11,
+    setXY: { x: 12, y: 0, stepX: 70 }
+  });
+
+  stars.children.iterate(child => {
+    child.displayWidth = 20;
+    child.displayHeight = 20;
+    child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+    child.setTint(0xffff00); 
+  });
+
+  this.physics.add.collider(stars, platforms);
+  this.physics.add.overlap(player, stars, collectStar, null, this);
+
+  scoreText = this.add.text(16, 16, 'Poäng: 0', { fontSize: '24px', fill: '#000' });
+
+  gameOverText = this.add.text(400, 300, '', { fontSize: '40px', fill: '#ff0000' });
+  gameOverText.setOrigin(0.5);
+
+  cursors = this.input.keyboard.createCursorKeys();
+  wKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+}
+
+function update () {
+  if (gameOver) return;
+
+  if (cursors.left.isDown) {
+    player.setVelocityX(-200);
+  } else if (cursors.right.isDown) {
+    player.setVelocityX(200);
+  } else {
+    player.setVelocityX(0);
+  }
+
+  if ((cursors.up.isDown || wKey.isDown) && player.body.touching.down) {
+    player.setVelocityY(-350);
+  }
+
+  if (player.y > 600) {
+    this.physics.pause();
+    player.setTint(0xff0000);
+    gameOverText.setText('Game Over');
+    gameOver = true;
+  }
+}
+
+function collectStar (player, star) {
+  star.disableBody(true, true);
+  score += 10;
+  scoreText.setText('Poäng: ' + score);
+
+  if (stars.countActive(true) === 0) {
+    stars.children.iterate(child => {
+      child.enableBody(true, child.x, 0, true, true);
+    });
+  }
+}
+</script>
+
+</body>
+</html>
